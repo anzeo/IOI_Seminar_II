@@ -1,4 +1,4 @@
-# instrumental
+# IOI Seminar II - Instrumental
 
 ## Project setup
 ```
