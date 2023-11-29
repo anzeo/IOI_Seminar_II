@@ -1,23 +1,25 @@
 <template>
   <div class="piano">
-    <div class="white-key">A</div>
-    <div class="black-key">W</div>
-    <div class="white-key">S</div>
-    <div class="black-key">E</div>
-    <div class="white-key">D</div>
-    <div class="white-key">F</div>
-    <div class="black-key">T</div>
-    <div class="white-key">G</div>
-    <div class="black-key">Y</div>
-    <div class="white-key">H</div>
-    <div class="black-key">U</div>
-    <div class="white-key">J</div>
-    <div class="white-key">K</div>
+    <div id="C4" class="white-key" @click="piano_keys.playC4()">A</div>
+    <div id="Db4" class="black-key" @click="piano_keys.playDb4()">W</div>
+    <div id="D4" class="white-key" @click="piano_keys.playD4()">S</div>
+    <div id="Eb4" class="black-key" @click="piano_keys.playEb4()">E</div>
+    <div id="E4" class="white-key" @click="piano_keys.playE4()">D</div>
+    <div id="F4" class="white-key" @click="piano_keys.playF4()">F</div>
+    <div id="Gb4" class="black-key" @click="piano_keys.playGb4()">T</div>
+    <div id="G4" class="white-key" @click="piano_keys.playG4()">G</div>
+    <div id="Ab4" class="black-key" @click="piano_keys.playAb4()">Y</div>
+    <div id="A4" class="white-key" @click="piano_keys.playA4()">H</div>
+    <div id="Bb4" class="black-key" @click="piano_keys.playBb4()">U</div>
+    <div id="B4" class="white-key" @click="piano_keys.playB4()">J</div>
+    <div id="C5" class="white-key" @click="piano_keys.playC5()">K</div>
   </div>
 </template>
 
 <script>
 import {hand_landmarks_dict} from "@/assets/MediaPipe_Hand_Landmarks"
+import {piano_keys} from "@/assets/tone_piano_fn";
+import _ from "lodash"
 
 
 export default {
@@ -34,8 +36,9 @@ export default {
     return {
       canvasElement: null,
       canvasCtx: null,
-      results: null
-
+      results: null,
+      previousPressedKeyIds: [],
+      piano_keys: piano_keys
     }
   },
 
@@ -44,7 +47,7 @@ export default {
       this.results = newVal
 
       if (this.results?.landmarks) {
-        this.detectKeys()
+        this.detectPressedKeys()
       }
     }
   },
@@ -102,6 +105,45 @@ export default {
         }
 
       }
+    },
+
+    detectPressedKeys() {
+      let pressedKeys = []
+
+      for (const hand_landmarks of this.results.landmarks) {
+        // this option uses distance between index finger points, to determine if finger is in "pressed" position
+        // this.isFingerPressed(hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_DIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_PIP]);
+
+        if (!this.isFingerFolded(hand_landmarks, 115))
+          continue
+
+        let index_tip = hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP]
+
+        let touchedElements = document.elementsFromPoint(this.canvasCtx.canvas.clientWidth - index_tip.x * this.canvasCtx.canvas.clientWidth, index_tip.y * this.canvasCtx.canvas.clientHeight)
+        let pressedBlackKey = touchedElements.filter(item => item.classList.contains('black-key'))
+        let pressedWhiteKey = touchedElements.filter(item => item.classList.contains('white-key'))
+
+        if (pressedBlackKey && pressedBlackKey.length)
+          pressedKeys = pressedKeys.concat(pressedBlackKey)
+        else if (pressedWhiteKey && pressedWhiteKey.length)
+          pressedKeys = pressedKeys.concat(pressedWhiteKey)
+      }
+
+      let pressedKeyIds = pressedKeys.map(pressedKey => pressedKey.id)
+
+      // check which keys were pressed before and are not pressed anymore
+      _.difference(this.previousPressedKeyIds, pressedKeyIds).forEach(keyId => {
+        document.querySelector(`#${keyId}`).classList.remove("pressed")
+      })
+
+      // check which keys were not pressed before, and are now pressed
+      _.difference(pressedKeyIds, this.previousPressedKeyIds).forEach(keyId => {
+        let pressedKey = document.querySelector(`#${keyId}`)
+        pressedKey.classList.add("pressed")
+        pressedKey.click()
+      })
+
+      this.previousPressedKeyIds = _.clone(pressedKeyIds)
     },
 
     // Function to check if a landmark is within a specific range of a piano key

@@ -13,7 +13,9 @@
     "@mediapipe/hands": "^0.4.1675469240",
     "@mediapipe/tasks-vision": "^0.10.8",
     "core-js": "^3.8.3",
+    "lodash": "^4.17.21",
     "sass": "^1.69.5",
+    "tone": "^14.7.77",
     "vue": "^3.2.13"
   },
   "devDependencies": {

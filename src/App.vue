@@ -3,7 +3,7 @@
     <video ref="webcam_output" class="webcam_output" id="webcam" autoplay playsinline></video>
     <canvas ref="output_canvas" class="output_canvas" id="output_canvas"></canvas>
 
-    <div style="position: absolute; left: 0; top: 0; z-index: -1" v-if="selectedInstrument === 'piano'">
+    <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: -1" v-if="selectedInstrument === 'piano'">
       <PlayPiano v-if="isCanvasLoaded" :detectionResults="results"
                  :canvasRef="$refs.output_canvas"></PlayPiano>
     </div>
