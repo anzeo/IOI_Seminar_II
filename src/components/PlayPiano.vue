@@ -1,18 +1,21 @@
 <template>
-  <div class="piano">
-    <div id="C4" class="white-key" @click="piano_keys.playC4()">A</div>
-    <div id="Db4" class="black-key" @click="piano_keys.playDb4()">W</div>
-    <div id="D4" class="white-key" @click="piano_keys.playD4()">S</div>
-    <div id="Eb4" class="black-key" @click="piano_keys.playEb4()">E</div>
-    <div id="E4" class="white-key" @click="piano_keys.playE4()">D</div>
-    <div id="F4" class="white-key" @click="piano_keys.playF4()">F</div>
-    <div id="Gb4" class="black-key" @click="piano_keys.playGb4()">T</div>
-    <div id="G4" class="white-key" @click="piano_keys.playG4()">G</div>
-    <div id="Ab4" class="black-key" @click="piano_keys.playAb4()">Y</div>
-    <div id="A4" class="white-key" @click="piano_keys.playA4()">H</div>
-    <div id="Bb4" class="black-key" @click="piano_keys.playBb4()">U</div>
-    <div id="B4" class="white-key" @click="piano_keys.playB4()">J</div>
-    <div id="C5" class="white-key" @click="piano_keys.playC5()">K</div>
+  <div class="d-flex" style="width: 100vw">
+    <div class="piano" v-for="i in noteOctaves" :key="'keys_' + i">
+      <div :id="'C' + i" class="white-key" @click="piano_keys.playKey('C' + i)"></div>
+      <div :id="'Db' + i" class="black-key" @click="piano_keys.playKey('Db' + i)"></div>
+      <div :id="'D' + i" class="white-key" @click="piano_keys.playKey('D' + i)"></div>
+      <div :id="'Eb' + i" class="black-key" @click="piano_keys.playKey('Eb' + i)"></div>
+      <div :id="'E' + i" class="white-key" @click="piano_keys.playKey('E' + i)"></div>
+      <div :id="'F' + i" class="white-key" @click="piano_keys.playKey('F' + i)"></div>
+      <div :id="'Gb' + i" class="black-key" @click="piano_keys.playKey('Gb' + i)"></div>
+      <div :id="'G' + i" class="white-key" @click="piano_keys.playKey('G' + i)"></div>
+      <div :id="'Ab' + i" class="black-key" @click="piano_keys.playKey('Ab' + i)"></div>
+      <div :id="'A' + i" class="white-key" @click="piano_keys.playKey('A' + i)"></div>
+      <div :id="'Bb' + i" class="black-key" @click="piano_keys.playKey('Bb' + i)"></div>
+      <div :id="'B' + i" class="white-key" @click="piano_keys.playKey('B' + i)"></div>
+      <div v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1" :id="'C' + (i + 1)" class="white-key"
+           @click="piano_keys.playKey('C' + (i + 1))"></div>
+    </div>
   </div>
 </template>
 
@@ -20,7 +23,10 @@
 import {hand_landmarks_dict} from "@/assets/MediaPipe_Hand_Landmarks"
 import {piano_keys} from "@/assets/tone_piano_fn";
 import _ from "lodash"
+import {loadModel} from "@/assets/run_model"
+import {Tensor} from "onnxjs";
 
+let session = await loadModel()
 
 export default {
   name: "PlayPiano",
@@ -29,7 +35,8 @@ export default {
 
   props: {
     detectionResults: Object,
-    canvasRef: HTMLCanvasElement
+    canvasRef: HTMLCanvasElement,
+    mode: String
   },
 
   data() {
@@ -43,16 +50,23 @@ export default {
   },
 
   watch: {
-    "detectionResults": function (newVal) {
+    "detectionResults": async function (newVal) {
       this.results = newVal
 
       if (this.results?.landmarks) {
-        this.detectPressedKeys()
+        await session
+        await this.detectPressedKeys()
       }
     }
   },
 
-  mounted() {
+  computed: {
+    noteOctaves() {
+      return this.mode === 'easy' ? [4] : [3, 4, 5]
+    }
+  },
+
+  async mounted() {
     this.results = this.$props.detectionResults
     this.canvasElement = this.$props.canvasRef
     this.canvasCtx = this.canvasElement.getContext("2d")
@@ -69,52 +83,15 @@ export default {
                  |              |
      (1900,1300) ---------------- (0,1300)
      */
-    detectKeys() {
-      for (const key of document.querySelectorAll('.white-key, .black-key')) {
-        let keyRect = key.getBoundingClientRect()
-        console.log(keyRect)
-        let isKeyPressed = false
 
-        // Check if a landmark is on the key
-        for (const hand_landmarks of this.results.landmarks) {
-          // this option uses distance between index finger points, to determine if finger is in "pressed" position
-          // isKeyPressed = [hand_landmarks_dict.INDEX_FINGER_TIP].map(index => hand_landmarks[index]).some((landmark) => isLandmarkOnKey(landmark, {
-          //     x: value["x"],
-          //     y: value["y"],
-          //     width: value["width"],
-          //     height: value["height"]
-          // })) && isFingerPressed(hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_DIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_PIP]);
-
-          // this option uses angle of index finger, to determine if finger is in "pressed" position
-          isKeyPressed = [hand_landmarks_dict.INDEX_FINGER_TIP].map(index => hand_landmarks[index]).some((landmark) => this.isLandmarkOnKey(landmark, {
-            x: this.canvasCtx.canvas.clientWidth - keyRect.x,
-            y: keyRect.y,
-            width: keyRect.width,
-            height: keyRect.height
-          })) && this.isFingerFolded(hand_landmarks, 115)
-
-          if (isKeyPressed)
-            break
-        }
-
-        // If a landmark is on the key, change its color
-        if (isKeyPressed) {
-          key.classList.add("pressed")
-        } else {
-          key.classList.remove("pressed")
-        }
-
-      }
-    },
-
-    detectPressedKeys() {
+    async detectPressedKeys() {
       let pressedKeys = []
 
       for (const hand_landmarks of this.results.landmarks) {
         // this option uses distance between index finger points, to determine if finger is in "pressed" position
         // this.isFingerPressed(hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_DIP], hand_landmarks[hand_landmarks_dict.INDEX_FINGER_PIP]);
 
-        if (!this.isFingerFolded(hand_landmarks, 115))
+        if (!await this.isFingerPressed(hand_landmarks.map(landmark => Object.values(landmark))))
           continue
 
         let index_tip = hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP]
@@ -162,58 +139,84 @@ export default {
     },
 
     // check if user has made a gesture which is considered a key press
-    isFingerPressed(tip, dip, pip) {
-      let dist1 = this.dist(tip, dip)
-      let dist2 = this.dist(tip, pip)
-      let dist3 = this.dist(dip, pip)
+    // isFingerPressed(tip, dip, pip) {
+    //   let dist1 = this.dist(tip, dip)
+    //   let dist2 = this.dist(tip, pip)
+    //   let dist3 = this.dist(dip, pip)
+    //
+    //   return (dist1 < 4 && dist2 < 5 && dist3 < 5)
+    // },
+    //
+    // // calculate geometric distance between two points
+    // dist(p1, p2) {
+    //   return Math.sqrt((p2.y - p1.y) ** 2 + (p2.x - p1.x) ** 2) * 100
+    // },
+    //
+    //
+    // isFingerFolded(landmarks, threshold = 90) {
+    //   // Calculate angles for specific finger segments
+    //   const angle1 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_TIP], landmarks[hand_landmarks_dict.INDEX_FINGER_PIP], landmarks[hand_landmarks_dict.INDEX_FINGER_MCP]);
+    //   const angle2 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_PIP], landmarks[hand_landmarks_dict.INDEX_FINGER_MCP], landmarks[hand_landmarks_dict.INDEX_FINGER_DIP]);
+    //   const angle3 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_MCP], landmarks[hand_landmarks_dict.INDEX_FINGER_DIP], landmarks[hand_landmarks_dict.INDEX_FINGER_PIP]);
+    //
+    //   // Use the average or maximum of the calculated angles
+    //   const finalAngle = Math.max(angle1, angle2, angle3);
+    //
+    //   // Check if the angle is less than the threshold (finger is folded to approximately 90 degrees)
+    //   return finalAngle < threshold;
+    // },
+    //
+    //
+    // calculateAngle(point1, point2, point3) {
+    //   const vector1 = [point1.x - point2.x, point1.y - point2.y, point1.z - point2.z];
+    //   const vector2 = [point3.x - point2.x, point3.y - point2.y, point3.z - point2.z];
+    //
+    //   // Calculate the dot product of vector1 and vector2
+    //   const dotProduct = vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector2[2];
+    //
+    //   // Calculate the magnitudes of vector1 and vector2
+    //   const magnitude1 = Math.sqrt(vector1[0] ** 2 + vector1[1] ** 2 + vector1[2] ** 2);
+    //   const magnitude2 = Math.sqrt(vector2[0] ** 2 + vector2[1] ** 2 + vector2[2] ** 2);
+    //
+    //   // Avoid division by zero
+    //   if (magnitude1 === 0 || magnitude2 === 0) {
+    //     return 0;
+    //   }
+    //
+    //   // Calculate the cosine of the angle
+    //   const cosineAngle = dotProduct / (magnitude1 * magnitude2);
+    //
+    //   // Calculate the angle in radians
+    //   const angleInRadians = Math.acos(cosineAngle);
+    //
+    //   // Convert the angle to degrees
+    //   return (angleInRadians * 180) / Math.PI;
+    // },
 
-      return (dist1 < 4 && dist2 < 5 && dist3 < 5)
+    async isFingerPressed(landmarks) {
+      let preprocessedLandmarks = this.preprocessLandmarks(landmarks)
+      let inputTensor = new Tensor(new Float32Array(preprocessedLandmarks), 'float32', [1, 63])
+      const outputMap = await session.run([inputTensor])
+      const outputTensor = outputMap.values().next().value
+      const predictions = outputTensor.data
+
+      // the model predicted class 1 with higher certainty than 0, which means that finger is pressed
+      console.log(predictions[1] > predictions[0])
+      return predictions[1] > predictions[0]
     },
 
-    // calculate geometric distance between two points
-    dist(p1, p2) {
-      return Math.sqrt((p2.y - p1.y) ** 2 + (p2.x - p1.x) ** 2) * 100
-    },
+    preprocessLandmarks(landmarks) {
+      const tmpLandmark = _.clone(landmarks)
 
+      const [baseX, baseY, baseZ] = [tmpLandmark[0][0], tmpLandmark[0][1], tmpLandmark[0][2]];
 
-    isFingerFolded(landmarks, threshold = 90) {
-      // Calculate angles for specific finger segments
-      const angle1 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_TIP], landmarks[hand_landmarks_dict.INDEX_FINGER_PIP], landmarks[hand_landmarks_dict.INDEX_FINGER_MCP]);
-      const angle2 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_PIP], landmarks[hand_landmarks_dict.INDEX_FINGER_MCP], landmarks[hand_landmarks_dict.INDEX_FINGER_DIP]);
-      const angle3 = this.calculateAngle(landmarks[hand_landmarks_dict.INDEX_FINGER_MCP], landmarks[hand_landmarks_dict.INDEX_FINGER_DIP], landmarks[hand_landmarks_dict.INDEX_FINGER_PIP]);
+      _.forEach(tmpLandmark, point => {
+        point[0] -= baseX;
+        point[1] -= baseY;
+        point[2] -= baseZ;
+      });
 
-      // Use the average or maximum of the calculated angles
-      const finalAngle = Math.max(angle1, angle2, angle3);
-
-      // Check if the angle is less than the threshold (finger is folded to approximately 90 degrees)
-      return finalAngle < threshold;
-    },
-
-
-    calculateAngle(point1, point2, point3) {
-      const vector1 = [point1.x - point2.x, point1.y - point2.y, point1.z - point2.z];
-      const vector2 = [point3.x - point2.x, point3.y - point2.y, point3.z - point2.z];
-
-      // Calculate the dot product of vector1 and vector2
-      const dotProduct = vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector2[2];
-
-      // Calculate the magnitudes of vector1 and vector2
-      const magnitude1 = Math.sqrt(vector1[0] ** 2 + vector1[1] ** 2 + vector1[2] ** 2);
-      const magnitude2 = Math.sqrt(vector2[0] ** 2 + vector2[1] ** 2 + vector2[2] ** 2);
-
-      // Avoid division by zero
-      if (magnitude1 === 0 || magnitude2 === 0) {
-        return 0;
-      }
-
-      // Calculate the cosine of the angle
-      const cosineAngle = dotProduct / (magnitude1 * magnitude2);
-
-      // Calculate the angle in radians
-      const angleInRadians = Math.acos(cosineAngle);
-
-      // Convert the angle to degrees
-      return (angleInRadians * 180) / Math.PI;
+      return _.flatten(tmpLandmark);
     }
   }
 }

@@ -1,6 +1,10 @@
 import * as Tone from "tone";
 
 export const piano_keys = {
+    playKey(key) {
+        const synth = new Tone.Synth().toDestination();
+        synth.triggerAttackRelease(key, "8n");
+    },
     playC4() {
         const synth = new Tone.Synth().toDestination();
         synth.triggerAttackRelease("C4", "8n");
