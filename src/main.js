@@ -3,7 +3,7 @@ import App from './App.vue'
 import BootstrapVue3 from 'bootstrap-vue-3';
 
 
-require('./assets/style.scss')
+require('@/assets/styles/style.scss')
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
