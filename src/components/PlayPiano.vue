@@ -1,30 +1,33 @@
 <template>
   <div class="d-flex" style="width: 100vw">
-    <div class="piano" v-for="i in noteOctaves" :key="'keys_' + i">
-      <div :id="'C' + i" class="white-key" @click="piano_keys.playKey('C' + i)"></div>
-      <div :id="'Db' + i" class="black-key" @click="piano_keys.playKey('Db' + i)"></div>
-      <div :id="'D' + i" class="white-key" @click="piano_keys.playKey('D' + i)"></div>
-      <div :id="'Eb' + i" class="black-key" @click="piano_keys.playKey('Eb' + i)"></div>
-      <div :id="'E' + i" class="white-key" @click="piano_keys.playKey('E' + i)"></div>
-      <div :id="'F' + i" class="white-key" @click="piano_keys.playKey('F' + i)"></div>
-      <div :id="'Gb' + i" class="black-key" @click="piano_keys.playKey('Gb' + i)"></div>
-      <div :id="'G' + i" class="white-key" @click="piano_keys.playKey('G' + i)"></div>
-      <div :id="'Ab' + i" class="black-key" @click="piano_keys.playKey('Ab' + i)"></div>
-      <div :id="'A' + i" class="white-key" @click="piano_keys.playKey('A' + i)"></div>
-      <div :id="'Bb' + i" class="black-key" @click="piano_keys.playKey('Bb' + i)"></div>
-      <div :id="'B' + i" class="white-key" @click="piano_keys.playKey('B' + i)"></div>
-      <div v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1" :id="'C' + (i + 1)" class="white-key"
-           @click="piano_keys.playKey('C' + (i + 1))"></div>
+    <div class="piano">
+      <div v-for="i in noteOctaves" :key="'keys_' + i" class="keys-group">
+        <div :id="'C' + i" class="white-key" @click="play.playPianoKey('C' + i)"><p>C{{ i }}</p></div>
+        <div :id="'Db' + i" class="black-key" @click="play.playPianoKey('Db' + i)"><p>Db{{ i }}</p></div>
+        <div :id="'D' + i" class="white-key" @click="play.playPianoKey('D' + i)"><p>D{{ i }}</p></div>
+        <div :id="'Eb' + i" class="black-key" @click="play.playPianoKey('Eb' + i)"><p>Eb{{ i }}</p></div>
+        <div :id="'E' + i" class="white-key" @click="play.playPianoKey('E' + i)"><p>E{{ i }}</p></div>
+        <div :id="'F' + i" class="white-key" @click="play.playPianoKey('F' + i)"><p>F{{ i }}</p></div>
+        <div :id="'Gb' + i" class="black-key" @click="play.playPianoKey('Gb' + i)"><p>Gb{{ i }}</p></div>
+        <div :id="'G' + i" class="white-key" @click="play.playPianoKey('G' + i)"><p>G{{ i }}</p></div>
+        <div :id="'Ab' + i" class="black-key" @click="play.playPianoKey('Ab' + i)"><p>Ab{{ i }}</p></div>
+        <div :id="'A' + i" class="white-key" @click="play.playPianoKey('A' + i)"><p>A{{ i }}</p></div>
+        <div :id="'Bb' + i" class="black-key" @click="play.playPianoKey('Bb' + i)"><p>Bb{{ i }}</p></div>
+        <div :id="'B' + i" class="white-key" @click="play.playPianoKey('B' + i)"><p>B{{ i }}</p></div>
+        <div v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1" :id="'C' + (i + 1)" class="white-key"
+             @click="play.playPianoKey('C' + (i + 1))"><p>C{{ i + 1 }}</p></div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import {hand_landmarks_dict} from "@/assets/MediaPipe_Hand_Landmarks"
-import {piano_keys} from "@/assets/tone_piano_fn";
+import {hand_landmarks_dict} from "@/assets/helpers/MediaPipe_Hand_Landmarks"
+import {play} from "@/assets/helpers/tone_functions";
 import _ from "lodash"
-import {loadModel} from "@/assets/run_model"
+import {loadModel} from "@/assets/helpers/run_model"
 import {Tensor} from "onnxjs";
+import "@/assets/styles/piano_style.scss"
 
 let session = await loadModel()
 
@@ -45,7 +48,7 @@ export default {
       canvasCtx: null,
       results: null,
       previousPressedKeyIds: [],
-      piano_keys: piano_keys
+      play: play
     }
   },
 
@@ -110,14 +113,14 @@ export default {
 
       // check which keys were pressed before and are not pressed anymore
       _.difference(this.previousPressedKeyIds, pressedKeyIds).forEach(keyId => {
-        document.querySelector(`#${keyId}`).classList.remove("pressed")
+        document.querySelector(`#${keyId}`)?.classList.remove("pressed")
       })
 
       // check which keys were not pressed before, and are now pressed
       _.difference(pressedKeyIds, this.previousPressedKeyIds).forEach(keyId => {
         let pressedKey = document.querySelector(`#${keyId}`)
-        pressedKey.classList.add("pressed")
-        pressedKey.click()
+        pressedKey?.classList.add("pressed")
+        pressedKey?.click()
       })
 
       this.previousPressedKeyIds = _.clone(pressedKeyIds)
@@ -200,9 +203,9 @@ export default {
       const outputTensor = outputMap.values().next().value
       const predictions = outputTensor.data
 
-      // the model predicted class 1 with higher certainty than 0, which means that finger is pressed
+      // the model predicted class 1 with higher certainty than 0, which means that finger is pressed, we also check if certainty is higher than threshold = 0.5
       console.log(predictions[1] > predictions[0])
-      return predictions[1] > predictions[0]
+      return predictions[1] > 0.5 && predictions[1] > predictions[0]
     },
 
     preprocessLandmarks(landmarks) {

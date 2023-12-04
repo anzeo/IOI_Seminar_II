@@ -1,0 +1,96 @@
+.piano {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  // all key groups but last have 7 white keys
+  .keys-group {
+    display: flex;
+    width: calc(100% / 22) * 7;
+
+    .white-key {
+      width: calc(100% / 7);
+    }
+
+    .black-key {
+      width: calc((100% / 7) * 0.6);
+      margin-left: calc((-100% / 7 * 0.6) / 2);
+      margin-right: calc((-100% / 7 * 0.6) / 2);
+    }
+  }
+
+  // the last key group has 8 white keys
+  .keys-group:last-of-type {
+    display: flex;
+    width: calc(100% / 22) * 8;
+
+    .white-key {
+      width: calc(100% / 8);
+
+      &:last-of-type::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 1px;
+        height: 100%;
+        background-color: #000000;
+      }
+    }
+
+    .black-key {
+      width: calc((100% / 8) * 0.6);
+      margin-left: calc((-100% / 8 * 0.6) / 2);
+      margin-right: calc((-100% / 8 * 0.6) / 2);
+    }
+  }
+
+  // if we only have one key group, the piano is in easy mode and should be a bit wider
+  .keys-group:only-of-type {
+    width: 50%;
+  }
+}
+
+.white-key {
+  position: relative;
+  border: 1px solid #000000;
+  border-right: 0;
+  border-left: 0;
+  width: 100px;
+  height: 400px;
+  background-color: white;
+  color: black;
+  text-align: center;
+  font-size: 12px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 100%;
+    background-color: #000000;
+  }
+
+  p {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0;
+  }
+}
+
+.black-key {
+  background-color: black;
+  height: 250px;
+  z-index: 1;
+  color: white;
+  text-align: center;
+  font-size: 12px;
+}
+
+.white-key.pressed, .black-key.pressed {
+  background-color: red;
+}
