@@ -204,7 +204,6 @@ export default {
       const predictions = outputTensor.data
 
       // the model predicted class 1 with higher certainty than 0, which means that finger is pressed, we also check if certainty is higher than threshold = 0.5
-      console.log(predictions[1] > predictions[0])
       return predictions[1] > 0.5 && predictions[1] > predictions[0]
     },
 

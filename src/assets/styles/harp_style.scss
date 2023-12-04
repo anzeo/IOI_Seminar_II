@@ -1,0 +1,32 @@
+.harp {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  // all string groups but last and first have 7 strings
+  .strings-group {
+    display: flex;
+    width: calc(100% / 36) * 7;
+    justify-content: space-around;
+    transform-origin: bottom center;
+
+    .string {
+      position: relative;
+      height: 600px; /* Adjust the thickness of the string */
+      width: 2px;
+      background-color: #cfcfcf; /* Adjust the color of the string */
+
+      &.red {
+        background-color: #af7470;
+      }
+      &.blue {
+        background-color: #7c83a8;
+      }
+
+      p {
+        position: absolute;
+      }
+    }
+  }
+}
+

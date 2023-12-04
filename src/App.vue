@@ -14,6 +14,19 @@
                      :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayPiano>
         </div>
       </div>
+      <div v-if="selectedInstrument === 'harp'">
+        <div style="position: absolute; left: 0; top: 0; z-index: 1">
+<!--          <b-button class="ms-2 mt-2"-->
+<!--                    @click="selectedInstrumentMode = (selectedInstrumentMode === 'easy' ? 'advanced' : 'easy')">{{-->
+<!--              selectedInstrumentMode === "easy" ? "Easy" : "Advanced"-->
+<!--            }}-->
+<!--          </b-button>-->
+        </div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <PlayHarp v-if="isCanvasLoaded" :detectionResults="results"
+                     :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayHarp>
+        </div>
+      </div>
     </template>
     <template v-else>
       <p v-if="calibration.target === '0'"
@@ -35,6 +48,7 @@ import PlayPiano from "@/components/PlayPiano.vue";
 import {HAND_CONNECTIONS} from "@mediapipe/hands";
 import {drawConnectors, drawLandmarks} from "@mediapipe/drawing_utils";
 import {FilesetResolver, HandLandmarker} from "@mediapipe/tasks-vision";
+import PlayHarp from "@/components/PlayHarp.vue";
 
 // for some reason detection doesn't work if this is defined in data() instead of here
 let handLandmarker = null
@@ -42,12 +56,13 @@ let handLandmarker = null
 export default {
   name: 'App',
   components: {
+    PlayHarp,
     PlayPiano
   },
 
   data() {
     return {
-      instruments: ["piano"],
+      instruments: ["piano", "harp", "xylophone"],
       selectedInstrument: null,
       selectedInstrumentMode: "easy",
       lastVideoTime: -1,
@@ -105,6 +120,8 @@ export default {
           if (e.code === 'KeyR') {
             this.calibration.active = true
             this.setCalibrationTimer()
+          } else if (e.key >= '1' && e.key <= this.instruments.length) {
+            this.selectedInstrument = this.instruments[parseInt(e.key) - 1]
           }
         });
       } else {
