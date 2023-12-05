@@ -3,30 +3,67 @@
   justify-content: center;
   width: 100%;
 
-  // all string groups but last and first have 7 strings
+  // all string groups but last have 7 strings
   .strings-group {
     display: flex;
     width: calc(100% / 36) * 7;
     justify-content: space-around;
     transform-origin: bottom center;
 
-    .string {
+    .string-container {
       position: relative;
-      height: 600px; /* Adjust the thickness of the string */
-      width: 2px;
-      background-color: #cfcfcf; /* Adjust the color of the string */
+      width: 100%;
+      height: calc(100vh * 0.6);
 
-      &.red {
-        background-color: #af7470;
-      }
-      &.blue {
-        background-color: #7c83a8;
-      }
+      .string {
+        position: relative;
+        width: 2px;
+        height: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #cfcfcf;
 
-      p {
-        position: absolute;
+        &.pressed {
+          background-color: #ffb21a;
+          animation: shake 0.5s infinite;
+        }
+
+        &.red {
+          background-color: #af7470;
+          &.pressed {
+            background-color: #ffb21a;
+          }
+        }
+
+        &.blue {
+          background-color: #7c83a8;
+          &.pressed {
+            background-color: #ffb21a;
+          }
+        }
+
+        p {
+          position: absolute;
+        }
       }
     }
+  }
+
+  // last strings group has 8 strings
+  .strings-group:last-of-type {
+    width: calc(100% / 36) * 8;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25%, 75% {
+    transform: translateX(-1.5px);
+  }
+  50% {
+    transform: translateX(1.5px);
   }
 }
 

@@ -2,15 +2,39 @@
   <div class="d-flex justify-content-center" style="width: 100vw">
     <div class="harp">
       <div v-for="i in noteOctaves" :key="'strings_' + i" class="strings-group">
-        <div :id="'C' + i" class="string red" @click="play.playHarpString('C' + i)"><p>C{{ i }}</p></div>
-        <div :id="'D' + i" class="string" @click="play.playHarpString('D' + i)"><p>D{{ i }}</p></div>
-        <div :id="'E' + i" class="string" @click="play.playHarpString('E' + i)"><p>E{{ i }}</p></div>
-        <div :id="'F' + i" class="string blue" @click="play.playHarpString('F' + i)"><p>F{{ i }}</p></div>
-        <div :id="'G' + i" class="string" @click="play.playHarpString('G' + i)"><p>G{{ i }}</p></div>
-        <div :id="'A' + i" class="string" @click="play.playHarpString('A' + i)"><p>A{{ i }}</p></div>
-        <div :id="'B' + i" class="string" @click="play.playHarpString('B' + i)"><p>B{{ i }}</p></div>
-        <div v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1" :id="'C' + (i + 1)" class="string red"
-             @click="play.playHarpString('C' + (i + 1))"><p>C{{ i + 1 }}</p></div>
+        <div class="string-container">
+          <div :id="'C' + i" class="string red" @click="play.playHarpString('C' + i)"></div>
+          <!--          <p class="text-center">C{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'D' + i" class="string" @click="play.playHarpString('D' + i)"></div>
+          <!--          <p class="text-center">D{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'E' + i" class="string" @click="play.playHarpString('E' + i)"></div>
+          <!--          <p class="text-center">E{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'F' + i" class="string blue" @click="play.playHarpString('F' + i)"></div>
+          <!--          <p class="text-center">F{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'G' + i" class="string" @click="play.playHarpString('G' + i)"></div>
+          <!--          <p class="text-center">G{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'A' + i" class="string" @click="play.playHarpString('A' + i)"></div>
+          <!--          <p class="text-center">A{{ i }}</p>-->
+        </div>
+        <div class="string-container">
+          <div :id="'B' + i" class="string" @click="play.playHarpString('B' + i)"></div>
+          <!--          <p class="text-center">B{{ i }}</p>-->
+        </div>
+        <div class="string-container" v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1">
+          <div :id="'C' + (i + 1)" class="string red"
+               @click="play.playHarpString('C' + (i + 1))"></div>
+          <!--          <p class="text-center">C{{ i + 1 }}</p>-->
+        </div>
       </div>
     </div>
     <!--    <svg class="harp_body" :viewBox="'0 0 ' + 1440 + ' ' + 800" >-->
@@ -21,11 +45,11 @@
 </template>
 
 <script>
-// import {hand_landmarks_dict} from "@/assets/helpers/MediaPipe_Hand_Landmarks"
+import {hand_landmarks_dict} from "@/assets/helpers/MediaPipe_Hand_Landmarks"
 import {play} from "@/assets/helpers/tone_functions";
-// import _ from "lodash"
+import _ from "lodash"
 import {loadModel} from "@/assets/helpers/run_model"
-// import {Tensor} from "onnxjs";
+import {Tensor} from "onnxjs";
 import "@/assets/styles/harp_style.scss"
 
 let session = await loadModel()
@@ -46,7 +70,7 @@ export default {
       canvasElement: null,
       canvasCtx: null,
       results: null,
-      previousPressedKeyIds: [],
+      previousPressedStringIds: [],
       play: play
     }
   },
@@ -57,7 +81,7 @@ export default {
 
       if (this.results?.landmarks) {
         await session
-        // await this.detectPressedKeys()
+        await this.detectPressedStrings()
       }
     }
   },
@@ -72,14 +96,7 @@ export default {
     this.results = this.$props.detectionResults
     this.canvasElement = this.$props.canvasRef
     this.canvasCtx = this.canvasElement.getContext("2d")
-    this.arrangeStringsInHarpArc(document.querySelectorAll('.string'), 150);
-
-    window.addEventListener('mousedown', (e) => {
-      let touchedElements = document.elementsFromPoint(e.x, e.y)
-      let pressedString = touchedElements.filter(item => item.classList.contains('string'))
-      if (pressedString.length)
-        pressedString[0].click()
-    })
+    // this.arrangeStringsInHarpArc(document.querySelectorAll('.string-container'), 150);
   },
 
   methods: {
@@ -105,41 +122,42 @@ export default {
      (1900,1300) ---------------- (0,1300)
      */
 
-    // async detectPressedKeys() {
-    //   let pressedKeys = []
-    //
-    //   for (const hand_landmarks of this.results.landmarks) {
-    //     if (!await this.isFingerPressed(hand_landmarks.map(landmark => Object.values(landmark))))
-    //       continue
-    //
-    //     let index_tip = hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP]
-    //
-    //     let touchedElements = document.elementsFromPoint(this.canvasCtx.canvas.clientWidth - index_tip.x * this.canvasCtx.canvas.clientWidth, index_tip.y * this.canvasCtx.canvas.clientHeight)
-    //     let pressedBlackKey = touchedElements.filter(item => item.classList.contains('black-key'))
-    //     let pressedWhiteKey = touchedElements.filter(item => item.classList.contains('white-key'))
-    //
-    //     if (pressedBlackKey && pressedBlackKey.length)
-    //       pressedKeys = pressedKeys.concat(pressedBlackKey)
-    //     else if (pressedWhiteKey && pressedWhiteKey.length)
-    //       pressedKeys = pressedKeys.concat(pressedWhiteKey)
-    //   }
-    //
-    //   let pressedKeyIds = pressedKeys.map(pressedKey => pressedKey.id)
-    //
-    //   // check which keys were pressed before and are not pressed anymore
-    //   _.difference(this.previousPressedKeyIds, pressedKeyIds).forEach(keyId => {
-    //     document.querySelector(`#${keyId}`)?.classList.remove("pressed")
-    //   })
-    //
-    //   // check which keys were not pressed before, and are now pressed
-    //   _.difference(pressedKeyIds, this.previousPressedKeyIds).forEach(keyId => {
-    //     let pressedKey = document.querySelector(`#${keyId}`)
-    //     pressedKey?.classList.add("pressed")
-    //     pressedKey?.click()
-    //   })
-    //
-    //   this.previousPressedKeyIds = _.clone(pressedKeyIds)
-    // },
+    async detectPressedStrings() {
+      let pressedStrings = []
+
+      for (const hand_landmarks of this.results.landmarks) {
+        if (!await this.isFingerPressed(hand_landmarks.map(landmark => Object.values(landmark))))
+          continue
+
+        let index_tip = hand_landmarks[hand_landmarks_dict.INDEX_FINGER_TIP]
+
+        let touchedElements = document.elementsFromPoint(this.canvasCtx.canvas.clientWidth - index_tip.x * this.canvasCtx.canvas.clientWidth, index_tip.y * this.canvasCtx.canvas.clientHeight)
+        let touchedStringContainers = touchedElements.filter(item => item.classList.contains('string-container'))
+
+        if (touchedStringContainers && touchedStringContainers.length) {
+          let strings = touchedStringContainers.map(stringContainer => {
+            return stringContainer.querySelector(".string")
+          })
+          pressedStrings = pressedStrings.concat(strings)
+        }
+      }
+      //
+      let pressedStringIds = pressedStrings.map(pressedString => pressedString.id)
+
+      // check which strings were pressed before and are not pressed anymore
+      _.difference(this.previousPressedStringIds, pressedStringIds).forEach(stringId => {
+        document.querySelector(`#${stringId}`)?.classList.remove("pressed")
+      })
+
+      // check which strings were not pressed before, and are now pressed
+      _.difference(pressedStringIds, this.previousPressedStringIds).forEach(stringId => {
+        let pressedString = document.querySelector(`#${stringId}`)
+        pressedString?.classList.add("pressed")
+        pressedString?.click()
+      })
+
+      this.previousPressedStringIds = _.clone(pressedStringIds)
+    },
 
     // Function to check if a landmark is within a specific range of a piano key
     // isLandmarkOnKey(landmark, key) {
@@ -156,30 +174,30 @@ export default {
     //   );
     // },
 
-    // async isFingerPressed(landmarks) {
-    //   let preprocessedLandmarks = this.preprocessLandmarks(landmarks)
-    //   let inputTensor = new Tensor(new Float32Array(preprocessedLandmarks), 'float32', [1, 63])
-    //   const outputMap = await session.run([inputTensor])
-    //   const outputTensor = outputMap.values().next().value
-    //   const predictions = outputTensor.data
-    //
-    //   // the model predicted class 1 with higher certainty than 0, which means that finger is pressed, we also check if certainty is higher than threshold = 0.5
-    //   return predictions[1] > 0.5 && predictions[1] > predictions[0]
-    // },
+    async isFingerPressed(landmarks) {
+      let preprocessedLandmarks = this.preprocessLandmarks(landmarks)
+      let inputTensor = new Tensor(new Float32Array(preprocessedLandmarks), 'float32', [1, 63])
+      const outputMap = await session.run([inputTensor])
+      const outputTensor = outputMap.values().next().value
+      const predictions = outputTensor.data
 
-    // preprocessLandmarks(landmarks) {
-    //   const tmpLandmark = _.clone(landmarks)
-    //
-    //   const [baseX, baseY, baseZ] = [tmpLandmark[0][0], tmpLandmark[0][1], tmpLandmark[0][2]];
-    //
-    //   _.forEach(tmpLandmark, point => {
-    //     point[0] -= baseX;
-    //     point[1] -= baseY;
-    //     point[2] -= baseZ;
-    //   });
-    //
-    //   return _.flatten(tmpLandmark);
-    // },
+      // the model predicted class 1 with higher certainty than 0, which means that finger is pressed, we also check if certainty is higher than threshold = 0.5
+      return predictions[1] > 0.5 && predictions[1] > predictions[0]
+    },
+
+    preprocessLandmarks(landmarks) {
+      const tmpLandmark = _.clone(landmarks)
+
+      const [baseX, baseY, baseZ] = [tmpLandmark[0][0], tmpLandmark[0][1], tmpLandmark[0][2]];
+
+      _.forEach(tmpLandmark, point => {
+        point[0] -= baseX;
+        point[1] -= baseY;
+        point[2] -= baseZ;
+      });
+
+      return _.flatten(tmpLandmark);
+    },
 
     async updateModel() {
       console.log("Updating harp model")
