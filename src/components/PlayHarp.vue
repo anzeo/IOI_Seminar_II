@@ -179,7 +179,12 @@ export default {
     //   });
     //
     //   return _.flatten(tmpLandmark);
-    // }
+    // },
+
+    async updateModel() {
+      console.log("Updating harp model")
+      session = await loadModel()
+    }
   }
 }
 

@@ -219,6 +219,11 @@ export default {
       });
 
       return _.flatten(tmpLandmark);
+    },
+
+    async updateModel() {
+      console.log("Updating piano model")
+      session = await loadModel()
     }
   }
 }

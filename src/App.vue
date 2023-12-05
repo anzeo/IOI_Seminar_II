@@ -1,6 +1,6 @@
 <template>
   <div style="position: relative; max-height: 100vh;">
-    <template v-if="!calibration.active && isHandLandmarkModelLoaded">
+    <template v-if="!calibration.active">
       <div v-if="selectedInstrument === 'piano'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
           <b-button class="ms-2 mt-2"
@@ -10,7 +10,7 @@
           </b-button>
         </div>
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
-          <PlayPiano v-if="isCanvasLoaded" :detectionResults="results"
+          <PlayPiano ref="piano" v-if="isCanvasLoaded" :detectionResults="results"
                      :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayPiano>
         </div>
       </div>
@@ -23,18 +23,36 @@
           <!--          </b-button>-->
         </div>
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
-          <PlayHarp v-if="isCanvasLoaded" :detectionResults="results"
+          <PlayHarp ref="harp" v-if="isCanvasLoaded" :detectionResults="results"
                     :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayHarp>
         </div>
       </div>
     </template>
     <template v-else>
-      <p v-if="calibration.target === '0'"
-         style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">Hold index fingers of both
-        hands UP {{ calibration.timeLeft }}</p>
-      <p v-if="calibration.target === '1'"
-         style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">Hold index fingers in
-        PRESSED position {{ calibration.timeLeft }}</p>
+      <loading v-model:active="isTrainingModel" :can-cancel="false" :is-full-page="true" style="text-align: center">
+        <template #after>
+          <div class="mt-4">
+            <h3>Training the model...</h3>
+            <span>
+             This may take a few seconds
+          </span>
+          </div>
+        </template>
+      </loading>
+      <template v-if="!isTrainingModel">
+        <div style="position: absolute; left: 50%; top: 10%; transform: translateX(-50%); text-align: center">
+          <template v-if="calibration.target === '0'">
+            <h5>Hold index fingers of both hands UP</h5>
+            <span v-if="calibration.timeLeft > 0">Capture will start in: <b>{{ calibration.timeLeft }}s</b></span>
+            <span v-else>Samples obtained: <b>{{ calibration.results.data_extended.length }}/{{ calibration.dataSize }}</b></span>
+          </template>
+          <template v-else-if="calibration.target === '1'">
+            <h5>Hold index fingers in PRESSED position</h5>
+            <span v-if="calibration.timeLeft > 0">Capture will start in: <b>{{ calibration.timeLeft }}s</b></span>
+            <span v-else>Samples obtained: <b>{{ calibration.results.data_pressed.length }}/{{ calibration.dataSize }}</b></span>
+          </template>
+        </div>
+      </template>
     </template>
 
     <!--  Video element for hand detection and canvas element for drawing detected hands  -->
@@ -49,6 +67,8 @@ import {HAND_CONNECTIONS} from "@mediapipe/hands";
 import {drawConnectors, drawLandmarks} from "@mediapipe/drawing_utils";
 import {FilesetResolver, HandLandmarker} from "@mediapipe/tasks-vision";
 import PlayHarp from "@/components/PlayHarp.vue";
+import Loading from 'vue-loading-overlay';
+import { toast } from 'vue3-toastify';
 
 // for some reason detection doesn't work if this is defined in data() instead of here
 let handLandmarker = null
@@ -57,7 +77,8 @@ export default {
   name: 'App',
   components: {
     PlayHarp,
-    PlayPiano
+    PlayPiano,
+    Loading
   },
 
   data() {
@@ -73,14 +94,14 @@ export default {
       calibration: {
         active: false,
         timer: null,
-        timeLeft: 1,
         target: "0",  // 0 meaning finger extended, and 1 meaning finger pressed
-        dataSize: 5, // set number of hand samples, that will be used to train the model for finger press detection
+        dataSize: 3000, // set number of hand samples, that will be used to train the model for finger press detection
         results: {
           "data_extended": [],
           "data_pressed": []
         }
       },
+      isTrainingModel: false
     }
   },
 
@@ -93,6 +114,14 @@ export default {
           "data_pressed": []
         }
       }
+    },
+
+    "selectedInstrument": async function (newVal) {
+      if (newVal) {
+        await this.$nextTick().then(async () => {
+          await this.updateModels()
+        })
+      }
     }
   },
 
@@ -104,10 +133,6 @@ export default {
 
     video() {
       return this.$refs.webcam_output
-    },
-
-    isHandLandmarkModelLoaded() {
-      return localStorage.getItem("hand_landmark_model")
     }
   },
 
@@ -120,7 +145,7 @@ export default {
       if (this.hasGetUserMedia()) {
         this.enableCam()
 
-        if (!this.isHandLandmarkModelLoaded && !this.calibration.active) {
+        if (!localStorage.getItem("hand_landmark_model") && !this.calibration.active) {
           this.calibration.active = true
           this.setCalibrationTimer()
         }
@@ -214,6 +239,8 @@ export default {
                     // this.calibration.results.data_pressed.push(landmarks.map(landmark => Object.values(landmark)).flat())
                   this.calibration.results.data_pressed.push(landmarks.map(landmark => Object.values(landmark)))
                 else {
+                  this.canvasCtx.save();
+                  this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
                   await this.trainModel()
                   this.results = null
                 }
@@ -239,6 +266,8 @@ export default {
         "target": target
       })
 
+      this.isTrainingModel = true
+
       await this.axios.post('http://127.0.0.1:5000/train', json_data, {
         headers: {
           'Content-Type': 'application/json',
@@ -254,22 +283,35 @@ export default {
               let base64String = reader.result;
               localStorage.setItem('hand_landmark_model', base64String.substr(base64String.indexOf(', ') + 1))
             }
+            toast("Model trained successfully!", {
+              autoClose: 4000,
+              type: "success"
+            })
           })
           .catch(err => {
             console.error(err)
+            toast("Error training the model...", {
+              autoClose: 4000,
+              type: "error"
+            })
           })
           .finally(async () => {
+            this.isTrainingModel = false
             this.calibration.active = false
             this.$forceUpdate()
-            await this.$nextTick().then(() => {
+            await this.$nextTick().then(async () => {
               this.canvasElement = this.$refs.output_canvas
               this.canvasCtx = this.canvasElement.getContext("2d")
+              await this.updateModels()
             })
           })
     },
 
     setCalibrationTimer() {
-      this.calibration.timeLeft = 5
+      if (this.calibration.timer)
+        clearInterval(this.calibration.timer)
+
+      this.calibration.timeLeft = 4
       this.calibration.timer = setInterval(() => {
         if (this.calibration.timeLeft <= 0) {
           clearInterval(this.calibration.timer)
@@ -277,7 +319,14 @@ export default {
           this.calibration.timeLeft -= 1
         }
       }, 1000)
-    }
+    },
+
+    // Load new trained model, stored in local storage
+    // Will be loaded only for one instrument, because the others are hidden, so their $refs are not accessible
+    async updateModels() {
+      await this.$refs.piano?.updateModel()
+      await this.$refs.harp?.updateModel()
+    },
   }
 }
 </script>
