@@ -12,13 +12,15 @@
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/hands": "^0.4.1675469240",
     "@mediapipe/tasks-vision": "^0.10.8",
+    "axios": "^1.6.2",
     "bootstrap-vue-3": "^0.5.1",
     "core-js": "^3.8.3",
     "lodash": "^4.17.21",
     "onnxjs": "^0.1.8",
     "sass": "^1.69.5",
     "tone": "^14.7.77",
-    "vue": "^3.3.9"
+    "vue": "^3.3.9",
+    "vue-axios": "^3.5.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",

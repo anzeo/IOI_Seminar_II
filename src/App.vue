@@ -1,6 +1,6 @@
 <template>
   <div style="position: relative; max-height: 100vh;">
-    <template v-if="!calibration.active">
+    <template v-if="!calibration.active && isHandLandmarkModelLoaded">
       <div v-if="selectedInstrument === 'piano'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
           <b-button class="ms-2 mt-2"
@@ -14,17 +14,17 @@
                      :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayPiano>
         </div>
       </div>
-      <div v-if="selectedInstrument === 'harp'">
+      <div v-else-if="selectedInstrument === 'harp'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
-<!--          <b-button class="ms-2 mt-2"-->
-<!--                    @click="selectedInstrumentMode = (selectedInstrumentMode === 'easy' ? 'advanced' : 'easy')">{{-->
-<!--              selectedInstrumentMode === "easy" ? "Easy" : "Advanced"-->
-<!--            }}-->
-<!--          </b-button>-->
+          <!--          <b-button class="ms-2 mt-2"-->
+          <!--                    @click="selectedInstrumentMode = (selectedInstrumentMode === 'easy' ? 'advanced' : 'easy')">{{-->
+          <!--              selectedInstrumentMode === "easy" ? "Easy" : "Advanced"-->
+          <!--            }}-->
+          <!--          </b-button>-->
         </div>
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
           <PlayHarp v-if="isCanvasLoaded" :detectionResults="results"
-                     :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayHarp>
+                    :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayHarp>
         </div>
       </div>
     </template>
@@ -73,9 +73,9 @@ export default {
       calibration: {
         active: false,
         timer: null,
-        timeLeft: 5,
+        timeLeft: 1,
         target: "0",  // 0 meaning finger extended, and 1 meaning finger pressed
-        dataSize: 10000, // set number of hand samples, that will be used to train the model for finger press detection
+        dataSize: 5, // set number of hand samples, that will be used to train the model for finger press detection
         results: {
           "data_extended": [],
           "data_pressed": []
@@ -104,6 +104,10 @@ export default {
 
     video() {
       return this.$refs.webcam_output
+    },
+
+    isHandLandmarkModelLoaded() {
+      return localStorage.getItem("hand_landmark_model")
     }
   },
 
@@ -116,8 +120,13 @@ export default {
       if (this.hasGetUserMedia()) {
         this.enableCam()
 
+        if (!this.isHandLandmarkModelLoaded && !this.calibration.active) {
+          this.calibration.active = true
+          this.setCalibrationTimer()
+        }
+
         window.addEventListener('keydown', (e) => {
-          if (e.code === 'KeyR') {
+          if (e.code === 'KeyR' && !this.calibration.active) {
             this.calibration.active = true
             this.setCalibrationTimer()
           } else if (e.key >= '1' && e.key <= this.instruments.length) {
@@ -179,7 +188,7 @@ export default {
       this.canvasCtx.save();
       this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
 
-      if (this.results.landmarks) {
+      if (this.results?.landmarks) {
         // loop through all detected hands - in our case max 2
         for (const landmarks of this.results.landmarks) {
           drawConnectors(this.canvasCtx, landmarks, HAND_CONNECTIONS, {
@@ -205,13 +214,7 @@ export default {
                     // this.calibration.results.data_pressed.push(landmarks.map(landmark => Object.values(landmark)).flat())
                   this.calibration.results.data_pressed.push(landmarks.map(landmark => Object.values(landmark)))
                 else {
-                  this.calibration.active = false
-                  this.$forceUpdate()
-                  await this.$nextTick().then(() => {
-                    this.canvasElement = this.$refs.output_canvas
-                    this.canvasCtx = this.canvasElement.getContext("2d")
-                  })
-                  this.trainModel()
+                  await this.trainModel()
                   this.results = null
                 }
               }
@@ -226,24 +229,43 @@ export default {
       window.requestAnimationFrame(this.predictWebcam);
     },
 
-    trainModel() {
+    async trainModel() {
       let data = this.calibration.results.data_extended.concat(this.calibration.results.data_pressed)
       // let target = Array(this.calibration.results.data_extended.length).fill(Array(21).fill(0)).concat(Array(this.calibration.results.data_extended.length).fill(Array(21).fill(1)))
       let target = Array(this.calibration.results.data_extended.length).fill([1, 0]).concat(Array(this.calibration.results.data_extended.length).fill([0, 1]))
 
-      const final = JSON.stringify({
+      const json_data = JSON.stringify({
         "data": data,
         "target": target
       })
-      const blob = new Blob([final], {type: "text/plain"})
-      const e = document.createEvent('MouseEvents'),
-          a = document.createElement('a');
-      a.download = "data.json";
-      a.href = window.URL.createObjectURL(blob);
-      a.dataset.downloadurl = ['text/json', a.download, a.href].join(':');
-      e.initEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-      a.dispatchEvent(e);
 
+      await this.axios.post('http://127.0.0.1:5000/train', json_data, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        responseType: 'blob'
+      })
+          .then(resp => {
+            const blob = new Blob([resp.data]);
+
+            let reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = function () {
+              let base64String = reader.result;
+              localStorage.setItem('hand_landmark_model', base64String.substr(base64String.indexOf(', ') + 1))
+            }
+          })
+          .catch(err => {
+            console.error(err)
+          })
+          .finally(async () => {
+            this.calibration.active = false
+            this.$forceUpdate()
+            await this.$nextTick().then(() => {
+              this.canvasElement = this.$refs.output_canvas
+              this.canvasCtx = this.canvasElement.getContext("2d")
+            })
+          })
     },
 
     setCalibrationTimer() {
@@ -251,8 +273,9 @@ export default {
       this.calibration.timer = setInterval(() => {
         if (this.calibration.timeLeft <= 0) {
           clearInterval(this.calibration.timer)
+        } else {
+          this.calibration.timeLeft -= 1
         }
-        this.calibration.timeLeft -= 1
       }, 1000)
     }
   }
