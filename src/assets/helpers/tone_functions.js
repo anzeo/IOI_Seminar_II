@@ -1,10 +1,11 @@
-import * as Tone from "tone";
+// import * as Tone from "tone";
 import {harp} from "@/assets/sounds/harp.js";
+import {piano} from "@/assets/sounds/piano";
 
 export const play = {
-    playPianoKey(key) {
-        const synth = new Tone.Synth().toDestination();
-        synth.triggerAttackRelease(key, "8n");
+    async playPianoKey(key) {
+        const audio = new Audio(piano[key])
+        await audio.play()
     },
 
     async playHarpString(string) {
