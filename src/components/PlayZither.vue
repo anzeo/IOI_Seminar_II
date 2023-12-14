@@ -1,46 +1,8 @@
 <template>
   <div class="d-flex justify-content-center" style="width: 100vw">
     <div class="harp">
-      <div v-for="i in noteOctaves" :key="'strings_' + i" class="strings-group">
-        <div class="string-container">
-          <div :id="'C' + i" class="string red" @click="play.playHarpString('C' + i)"></div>
-          <!--          <p class="text-center">C{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'D' + i" class="string" @click="play.playHarpString('D' + i)"></div>
-          <!--          <p class="text-center">D{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'E' + i" class="string" @click="play.playHarpString('E' + i)"></div>
-          <!--          <p class="text-center">E{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'F' + i" class="string blue" @click="play.playHarpString('F' + i)"></div>
-          <!--          <p class="text-center">F{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'G' + i" class="string" @click="play.playHarpString('G' + i)"></div>
-          <!--          <p class="text-center">G{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'A' + i" class="string" @click="play.playHarpString('A' + i)"></div>
-          <!--          <p class="text-center">A{{ i }}</p>-->
-        </div>
-        <div class="string-container">
-          <div :id="'B' + i" class="string" @click="play.playHarpString('B' + i)"></div>
-          <!--          <p class="text-center">B{{ i }}</p>-->
-        </div>
-        <div class="string-container" v-if="noteOctaves.indexOf(i) === noteOctaves.length - 1">
-          <div :id="'C' + (i + 1)" class="string red"
-               @click="play.playHarpString('C' + (i + 1))"></div>
-          <!--          <p class="text-center">C{{ i + 1 }}</p>-->
-        </div>
-      </div>
+      <ZitherShape></ZitherShape>
     </div>
-    <!--    <svg class="harp_body" :viewBox="'0 0 ' + 1440 + ' ' + 800" >-->
-    <!--      <path d="M1205.8,331.5c-80.1-50.9-218.6,9.7-304.5,37.1c-85.9,27.3-204.2,135.3-328.7-191.4C448.1-149.5,102.9-163.1,102.9-163.1l1.7,254.3c26.9,0.8,91.8,14.2,128.8,35c37,20.7,145.6,136,188.6,203.2c43,67.1,124.4,227.9,309.5,217.8c185-10.1,283.3-106.8,315.6-126.7c32.3-19.9,32.3,0.9,32.3,0.9l-0.8,33.9L70.2,1539.8c0,0-56.7,58,59.3,61.4c116,3.4,307.4,3.4,307.4,3.4l753.5-1146C1190.3,458.5,1285.8,382.4,1205.8,331.5z"></path>-->
-    <!--      <path d="M142.1,1544.6c0,0-63.5,55.9-79.9,38.8c-26.4-27.6-14.3-195.5-14.3-195.5l2.3-1557.1l94.4,4.1L142.1,1544.6z"></path>-->
-    <!--    </svg>-->
   </div>
 </template>
 
@@ -50,14 +12,15 @@ import {play} from "@/assets/helpers/tone_functions";
 import _ from "lodash"
 import {loadModel} from "@/assets/helpers/run_model"
 import {Tensor} from "onnxjs";
-import "@/assets/styles/harp_style.scss"
+import "@/assets/styles/zither_style.scss"
+import ZitherShape from "@/components/ZitherShape.vue";
 
 let session = await loadModel()
 
 export default {
-  name: "PlayHarp",
+  name: "PlayZither",
 
-  components: {},
+  components: {ZitherShape},
 
   props: {
     detectionResults: Object,
@@ -88,7 +51,7 @@ export default {
 
   computed: {
     noteOctaves() {
-      return this.mode === 'easy' ? [1, 2, 3, 4, 5] : [1, 2, 3, 4, 5]
+      return [4, 5]
     }
   },
 
@@ -96,22 +59,9 @@ export default {
     this.results = this.$props.detectionResults
     this.canvasElement = this.$props.canvasRef
     this.canvasCtx = this.canvasElement.getContext("2d")
-    // this.arrangeStringsInHarpArc(document.querySelectorAll('.string-container'), 150);
   },
 
   methods: {
-    // TODO: Align strings so they will form some kind of arc
-    arrangeStringsInHarpArc(strings, radius) {
-      const totalStrings = strings.length;
-      const angleIncrement = Math.PI / (totalStrings - 1);
-
-      strings.forEach((string, i) => {
-        const angle = i * angleIncrement;
-        const y = radius * Math.sin(angle);
-        string.style.transform = `translateY(${y}px)`;
-      });
-    },
-
     /*
     Coordinate system - is inverted, because of canvas mirroring on x-axis
         (1900,0) ---------------- (0,0)
@@ -133,15 +83,15 @@ export default {
 
         let touchedElements = document.elementsFromPoint(this.canvasCtx.canvas.clientWidth - index_tip.x * this.canvasCtx.canvas.clientWidth, index_tip.y * this.canvasCtx.canvas.clientHeight)
         let touchedStringContainers = touchedElements.filter(item => item.classList.contains('string-container'))
+        let isZitherEdgeTouched = touchedElements.filter(item => item.classList.contains('edge'))?.length > 0
 
-        if (touchedStringContainers && touchedStringContainers.length) {
+        if (!isZitherEdgeTouched && touchedStringContainers && touchedStringContainers.length) {
           let strings = touchedStringContainers.map(stringContainer => {
-            return stringContainer.querySelector(".string")
+            return stringContainer.parentNode.querySelector(".string")
           })
           pressedStrings = pressedStrings.concat(strings)
         }
       }
-      //
       let pressedStringIds = pressedStrings.map(pressedString => pressedString.id)
 
       // check which strings were pressed before and are not pressed anymore
@@ -153,7 +103,9 @@ export default {
       _.difference(pressedStringIds, this.previousPressedStringIds).forEach(stringId => {
         let pressedString = document.querySelector(`#${stringId}`)
         pressedString?.classList.add("pressed")
-        pressedString?.click()
+        let [note, noteId] = stringId.split("_")
+        let octave = noteId < this.noteOctaves.length ? this.noteOctaves[noteId] : this.noteOctaves[noteId - 1] + 1
+        this.play.playHarpString(`${note}${octave}`)
       })
 
       this.previousPressedStringIds = _.clone(pressedStringIds)

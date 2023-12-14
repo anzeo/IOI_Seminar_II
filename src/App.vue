@@ -66,7 +66,7 @@ import PlayPiano from "@/components/PlayPiano.vue";
 import {HAND_CONNECTIONS} from "@mediapipe/hands";
 import {drawConnectors, drawLandmarks} from "@mediapipe/drawing_utils";
 import {FilesetResolver, HandLandmarker} from "@mediapipe/tasks-vision";
-import PlayHarp from "@/components/PlayHarp.vue";
+import PlayHarp from "@/components/PlayZither.vue";
 import Loading from 'vue-loading-overlay';
 import { toast } from 'vue3-toastify';
 
