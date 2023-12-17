@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Kje so tiste stezice",
+    "melody_file": "zither_01.json"
+  },
+  {
+    "title": "Moj očka ima konjička dva",
+    "melody_file": "zither_02.json"
+  },
+  {
+    "title": "Na planincah sončece sije",
+    "melody_file": "zither_03.json"
+  },
+  {
+    "title": "Vse najboljše za rojstni dan",
+    "melody_file": "zither_04.json"
+  },
+  {
+    "title": "Jaz pa grem na zeleno travco",
+    "melody_file": "zither_05.json"
+  }
+]

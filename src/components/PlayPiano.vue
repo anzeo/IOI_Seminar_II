@@ -39,7 +39,8 @@ export default {
   props: {
     detectionResults: Object,
     canvasRef: HTMLCanvasElement,
-    mode: String
+    mode: String,
+    songTutorial: Object
   },
 
   data() {
@@ -66,6 +67,10 @@ export default {
   computed: {
     noteOctaves() {
       return this.mode === 'easy' ? [4] : [3, 4, 5]
+    },
+
+    isSongTutorialActive() {
+      return this.songTutorial && this.songTutorial.isActive
     }
   },
 

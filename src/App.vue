@@ -1,6 +1,17 @@
 <template>
   <div style="position: relative; max-height: 100vh;">
     <template v-if="!calibration.active">
+      <div class="d-flex flex-column align-items-end" style="position: absolute; right: 0; top: 0; z-index: 1">
+        <b-button class="me-2 mt-2" variant="primary" @click="$refs.sidebar.toggle()">Song tutorials</b-button>
+        <h5 v-if="songTutorial && songTutorial.isActive"
+            style="margin: 10px 0 5px 0; line-height: 35px; border-bottom: 1px solid; border-top: 1px solid; padding: 0 4px 0 4px"
+            class="me-2">{{ songTutorial.song.title }}</h5>
+        <b-button v-if="songTutorial.isActive" class="me-2 mt-2" variant="warning"
+                  @click="songTutorial = {isActive: false}">Cancel tutorial
+        </b-button>
+      </div>
+      <SidebarComponent ref="sidebar" :selected-instrument="selectedInstrument"
+                        @songSelected="song => {songTutorial = {isActive: true, song: song}}"></SidebarComponent>
       <div v-if="selectedInstrument === 'piano'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
           <b-button class="ms-2 mt-2"
@@ -11,10 +22,11 @@
         </div>
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
           <PlayPiano ref="piano" v-if="isCanvasLoaded" :detectionResults="results"
-                     :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayPiano>
+                     :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"
+                     :songTutorial="songTutorial"></PlayPiano>
         </div>
       </div>
-      <div v-else-if="selectedInstrument === 'harp'">
+      <div v-else-if="selectedInstrument === 'zither'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
           <!--          <b-button class="ms-2 mt-2"-->
           <!--                    @click="selectedInstrumentMode = (selectedInstrumentMode === 'easy' ? 'advanced' : 'easy')">{{-->
@@ -23,8 +35,9 @@
           <!--          </b-button>-->
         </div>
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
-          <PlayHarp ref="harp" v-if="isCanvasLoaded" :detectionResults="results"
-                    :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"></PlayHarp>
+          <PlayZither ref="zither" v-if="isCanvasLoaded" :detectionResults="results"
+                      :canvasRef="$refs.output_canvas" :mode="selectedInstrumentMode"
+                      :songTutorial="songTutorial"></PlayZither>
         </div>
       </div>
     </template>
@@ -44,12 +57,16 @@
           <template v-if="calibration.target === '0'">
             <h5>Hold index fingers of both hands UP</h5>
             <span v-if="calibration.timeLeft > 0">Capture will start in: <b>{{ calibration.timeLeft }}s</b></span>
-            <span v-else>Samples obtained: <b>{{ calibration.results.data_extended.length }}/{{ calibration.dataSize }}</b></span>
+            <span v-else>Samples obtained: <b>{{ calibration.results.data_extended.length }}/{{
+                calibration.dataSize
+              }}</b></span>
           </template>
           <template v-else-if="calibration.target === '1'">
             <h5>Hold index fingers in PRESSED position</h5>
             <span v-if="calibration.timeLeft > 0">Capture will start in: <b>{{ calibration.timeLeft }}s</b></span>
-            <span v-else>Samples obtained: <b>{{ calibration.results.data_pressed.length }}/{{ calibration.dataSize }}</b></span>
+            <span v-else>Samples obtained: <b>{{ calibration.results.data_pressed.length }}/{{
+                calibration.dataSize
+              }}</b></span>
           </template>
         </div>
       </template>
@@ -66,9 +83,10 @@ import PlayPiano from "@/components/PlayPiano.vue";
 import {HAND_CONNECTIONS} from "@mediapipe/hands";
 import {drawConnectors, drawLandmarks} from "@mediapipe/drawing_utils";
 import {FilesetResolver, HandLandmarker} from "@mediapipe/tasks-vision";
-import PlayHarp from "@/components/PlayZither.vue";
+import PlayZither from "@/components/PlayZither.vue";
 import Loading from 'vue-loading-overlay';
-import { toast } from 'vue3-toastify';
+import {toast} from 'vue3-toastify';
+import SidebarComponent from "@/components/SidebarComponent.vue";
 
 // for some reason detection doesn't work if this is defined in data() instead of here
 let handLandmarker = null
@@ -76,14 +94,15 @@ let handLandmarker = null
 export default {
   name: 'App',
   components: {
-    PlayHarp,
+    SidebarComponent,
+    PlayZither,
     PlayPiano,
     Loading
   },
 
   data() {
     return {
-      instruments: ["piano", "harp", "xylophone"],
+      instruments: ["piano", "zither", "xylophone"],
       selectedInstrument: null,
       selectedInstrumentMode: "easy",
       lastVideoTime: -1,
@@ -101,7 +120,10 @@ export default {
           "data_pressed": []
         }
       },
-      isTrainingModel: false
+      isTrainingModel: false,
+      songTutorial: {
+        isActive: false
+      }
     }
   },
 
@@ -119,6 +141,7 @@ export default {
     "selectedInstrument": async function (newVal) {
       if (newVal) {
         await this.$nextTick().then(async () => {
+          this.songTutorial.isActive = false
           await this.updateModels()
         })
       }
@@ -325,7 +348,7 @@ export default {
     // Will be loaded only for one instrument, because the others are hidden, so their $refs are not accessible
     async updateModels() {
       await this.$refs.piano?.updateModel()
-      await this.$refs.harp?.updateModel()
+      await this.$refs.zither?.updateModel()
     },
   }
 }

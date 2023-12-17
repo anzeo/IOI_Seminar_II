@@ -1,5 +1,6 @@
 <template>
   <div class="d-flex justify-content-center" style="width: 100vw">
+<!--    <img src="@/assets/songs/20231207_094453.jpg" style="position: absolute; z-index: -10; height: 820px; top: -25px; left: -40px">-->
     <div class="harp">
       <ZitherShape></ZitherShape>
     </div>
@@ -25,7 +26,8 @@ export default {
   props: {
     detectionResults: Object,
     canvasRef: HTMLCanvasElement,
-    mode: String
+    mode: String,
+    songTutorial: Object
   },
 
   data() {
@@ -52,6 +54,10 @@ export default {
   computed: {
     noteOctaves() {
       return [4, 5, 6]
+    },
+
+    isSongTutorialActive() {
+      return this.songTutorial && this.songTutorial.isActive
     }
   },
 
@@ -59,6 +65,27 @@ export default {
     this.results = this.$props.detectionResults
     this.canvasElement = this.$props.canvasRef
     this.canvasCtx = this.canvasElement.getContext("2d")
+    //
+    // let song = []
+    //
+    // document.addEventListener('mousedown', e => {
+    //   let touchedElements = document.elementsFromPoint(e.x, e.y)
+    //   let touchedStringContainers = touchedElements.filter(item => item.classList.contains('string-container'))
+    //
+    //   if (touchedStringContainers && touchedStringContainers.length) {
+    //     let strings = touchedStringContainers.map(stringContainer => {
+    //       return stringContainer.parentNode.querySelector(".string")
+    //     })
+    //
+    //     strings.forEach(string => {
+    //       let [note, noteId] = string.id.split("_")
+    //       song.push({"string": string.id})
+    //       let octave =  this.noteOctaves[noteId]
+    //       this.play.playHarpString(`${note}${octave}`)
+    //     })
+    //     console.log(song)
+    //   }
+    // })
   },
 
   methods: {
