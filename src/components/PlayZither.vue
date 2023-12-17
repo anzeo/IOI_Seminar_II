@@ -51,7 +51,7 @@ export default {
 
   computed: {
     noteOctaves() {
-      return [4, 5]
+      return [4, 5, 6]
     }
   },
 
