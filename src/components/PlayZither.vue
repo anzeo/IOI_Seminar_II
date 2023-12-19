@@ -2,7 +2,7 @@
   <div class="d-flex justify-content-center" style="width: 100vw">
 <!--    <img src="@/assets/songs/20231207_094453.jpg" style="position: absolute; z-index: -10; height: 820px; top: -25px; left: -40px">-->
     <div class="harp">
-      <ZitherShape></ZitherShape>
+      <ZitherShape ref="zither"></ZitherShape>
     </div>
   </div>
 </template>
@@ -36,7 +36,8 @@ export default {
       canvasCtx: null,
       results: null,
       previousPressedStringIds: [],
-      play: play
+      play: play,
+      songNotes: []
     }
   },
 
@@ -48,6 +49,21 @@ export default {
         await session
         await this.detectPressedStrings()
       }
+    },
+
+    "songTutorial": {
+      handler: function (newVal) {
+        if (newVal) {
+          this.$refs.zither?.rerender()
+          if (newVal.isActive) {
+            import(`@/assets/songs/${newVal.song.melody_file}`).then(resp => {
+              this.songNotes = resp.default
+              this.drawInstructions()
+            })
+          }
+        }
+      },
+      deep: true
     }
   },
 
@@ -181,6 +197,51 @@ export default {
     async updateModel() {
       console.log("Updating harp model")
       session = await loadModel()
+    },
+
+    drawInstructions() {
+      let songLength = this.songNotes.length
+      let startX = document.querySelector(`#${this.songNotes[0].string}.string`)?.getBoundingClientRect().left
+      let endX = document.querySelector(`#${this.songNotes[songLength - 1].string}.string`)?.getBoundingClientRect().right
+      let spaceBetweenNotes = (endX - startX) / (songLength - 1)
+      let xPosition = startX
+      let svg = this.$refs.zither.getSvg()
+
+      function screenToSvgCoordinates(pageX, pageY, svgElement) {
+        let svgMatrix = svgElement.getScreenCTM();
+        let pagePoint = svgElement.createSVGPoint();
+        pagePoint.x = pageX;
+        pagePoint.y = pageY;
+        return pagePoint.matrixTransform(svgMatrix.inverse())
+      }
+
+      this.songNotes.forEach((songNote, index) => {
+        let string = document.querySelector(`#${songNote.string}.string`)
+        let stringBCR = string.getBoundingClientRect()
+
+        if (stringBCR.left > xPosition) {
+          xPosition = stringBCR.left
+          spaceBetweenNotes = songLength - index - 1 > 0 ? (endX - xPosition) / (songLength - index - 1) : spaceBetweenNotes
+        }
+        if (xPosition > stringBCR.right) {
+          xPosition = stringBCR.right
+          spaceBetweenNotes = songLength - index - 1 > 0 ? (endX - xPosition) / (songLength - index - 1) : spaceBetweenNotes
+        }
+
+        let newCircle = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+        newCircle.setAttribute('r', '3.5');
+        newCircle.setAttribute('fill', 'blue');
+        newCircle.setAttribute('class', 'instructionNote');
+
+        let inObjectSpace = screenToSvgCoordinates(xPosition, stringBCR.top, svg)
+
+        newCircle.setAttribute('cx', `${inObjectSpace.x}`);  // x-coordinate of the center
+        newCircle.setAttribute('cy', `${inObjectSpace.y}`);   // y-coordinate of the center
+
+        svg.appendChild(newCircle)
+
+        xPosition += spaceBetweenNotes
+      })
     }
   }
 }
