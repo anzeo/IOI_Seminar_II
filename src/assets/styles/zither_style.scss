@@ -18,6 +18,16 @@
     }
   }
 
+  .instructionNote {
+    &.active {
+      fill: #ffc107;
+    }
+
+    &.played {
+      fill: #249b64;
+    }
+  }
+
 }
 
 @keyframes shake {

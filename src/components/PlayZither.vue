@@ -54,16 +54,46 @@ export default {
     "songTutorial": {
       handler: function (newVal) {
         if (newVal) {
+          // Reset this.songNotes, to force activeSongNote watcher to fire when the song changes
+          // (if no notes were played in previous song active note index stays the same (0) and watcher is not fired)
+          this.songNotes = []
           this.$refs.zither?.rerender()
           if (newVal.isActive) {
             import(`@/assets/songs/${newVal.song.melody_file}`).then(resp => {
-              this.songNotes = resp.default
+              this.songNotes = _.cloneDeep(resp.default)
               this.drawInstructions()
             })
           }
         }
       },
       deep: true
+    },
+
+    "activeSongNote": function (newVal) {
+      if (newVal !== -1) {
+        // Mark previous note as played, so it can be displayed differently
+        if (newVal > 0) {
+          if (newVal - 1 >= 0 && newVal - 1 < this.songNotes.length)
+            this.songNotes[newVal - 1].played = true
+          let prevSvgNote = document.querySelector(`#instructionNote_${newVal - 1}`)
+          prevSvgNote.classList.remove("active")
+          prevSvgNote.classList.add("played")
+        }
+
+        // Update class of active note to play, so it can be displayed differently
+        let svg_note = document.querySelector(`#instructionNote_${newVal}`)
+        svg_note.classList.add("active")
+      }
+    },
+
+    // When all notes are played disable song tutorial
+    "unplayedSongNotes": function (newVal) {
+      if (newVal === 0) {
+        let activeNote = document.querySelector(`.instructionNote.active`)
+        activeNote.classList.remove("active")
+        activeNote.classList.add("played")
+        // this.$parent.songTutorial = {isActive: false}
+      }
     }
   },
 
@@ -74,6 +104,21 @@ export default {
 
     isSongTutorialActive() {
       return this.songTutorial && this.songTutorial.isActive
+    },
+
+    activeSongNote() {
+      if (this.isSongTutorialActive && this.songNotes?.length > 0) {
+        return this.songNotes.findIndex(songNote => {
+          return songNote.played === undefined
+        })
+      }
+      return -1
+    },
+
+    unplayedSongNotes() {
+      if (this.songNotes.length)
+        return this.songNotes.filter(songNote => songNote.played === undefined)?.length
+      return -1
     }
   },
 
@@ -129,9 +174,28 @@ export default {
         let isZitherEdgeTouched = touchedElements.filter(item => item.classList.contains('edge'))?.length > 0
 
         if (!isZitherEdgeTouched && touchedStringContainers && touchedStringContainers.length) {
-          let strings = touchedStringContainers.map(stringContainer => {
-            return stringContainer.parentNode.querySelector(".string")
-          })
+          let strings = touchedStringContainers.reduce((result, stringContainer) => {
+            // ========== If Song tutorial is active, ignore all strings, other than the current active one ==========
+            if (this.isSongTutorialActive && this.activeSongNote !== -1) {
+              let string = stringContainer.parentNode.querySelector(".string")
+              if (this.songNotes[this.activeSongNote].string === string.id) {
+                if (!this.previousPressedStringIds.includes(string.id)) {
+                  this.songNotes[this.activeSongNote].played = true;
+                }
+                result.push(string);
+              } else if (this.activeSongNote > 0 && this.songNotes[this.activeSongNote - 1].string === string.id && this.previousPressedStringIds.includes(string.id)) {
+                result.push(string);
+              }
+            } // =====================================================================================================
+            else {
+              let string = stringContainer.parentNode.querySelector(".string");
+              if (string) {
+                result.push(string);
+              }
+            }
+
+            return result;
+          }, []);
           pressedStrings = pressedStrings.concat(strings)
         }
       }
@@ -230,8 +294,9 @@ export default {
 
         let newCircle = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
         newCircle.setAttribute('r', '3.5');
-        newCircle.setAttribute('fill', 'blue');
+        newCircle.setAttribute('fill', '#378cff');
         newCircle.setAttribute('class', 'instructionNote');
+        newCircle.setAttribute('id', 'instructionNote_' + index);
 
         let inObjectSpace = screenToSvgCoordinates(xPosition, stringBCR.top, svg)
 
@@ -242,7 +307,52 @@ export default {
 
         xPosition += spaceBetweenNotes
       })
-    }
+    },
+
+    // Helper function
+    // convertSong() {
+    //   let song = []
+    //   import(`@/assets/songs/zither_05.json`).then(resp => {
+    //     song = resp.default
+    //     let new_s = []
+    //     console.log(song)
+    //
+    //     song.forEach(s => {
+    //       let [note, noteId] = s.string.split("_")
+    //       noteId = parseInt(noteId)
+    //       switch (note) {
+    //         case "A":
+    //           note = "C"
+    //           break
+    //         case "B":
+    //           note = "D"
+    //           break
+    //         case "C":
+    //           note = "E"
+    //             noteId -= 1
+    //           break
+    //         case "D":
+    //           note = "F"
+    //           noteId -= 1
+    //           break
+    //         case "E":
+    //           note = "G"
+    //           noteId -= 1
+    //           break
+    //         case "F":
+    //           note = "A"
+    //           noteId -= 1
+    //           break
+    //         case "G":
+    //           note = "B"
+    //           noteId -= 1
+    //           break
+    //       }
+    //       new_s.push({'string': `${note}_${noteId}`})
+    //     })
+    //     console.log(new_s)
+    //   })
+    // }
   }
 }
 

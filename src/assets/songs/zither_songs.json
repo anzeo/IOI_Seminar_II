@@ -18,5 +18,33 @@
   {
     "title": "Jaz pa grem na zeleno travco",
     "melody_file": "zither_05.json"
+  },
+  {
+    "title": "Ringa, ringa, raja",
+    "melody_file": "zither_06.json"
+  },
+  {
+    "title": "Čuk se je oženil",
+    "melody_file": "zither_07.json"
+  },
+  {
+    "title": "Šmentana muha",
+    "melody_file": "zither_08.json"
+  },
+  {
+    "title": "Sijaj, sijaj sončece",
+    "melody_file": "zither_09.json"
+  },
+  {
+    "title": "Izidor ovčice pase",
+    "melody_file": "zither_10.json"
+  },
+  {
+    "title": "Sveta noč",
+    "melody_file": "zither_11.json"
+  },
+  {
+    "title": "V dolini tihi",
+    "melody_file": "zither_12.json"
   }
 ]
