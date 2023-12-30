@@ -1,74 +1,98 @@
 [
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "A_0"
+    "string": "A_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "E_0"
+    "string": "E_0",
+    "duration": 0.25
   },
   {
-    "string": "E_0"
+    "string": "E_0",
+    "duration": 0.25
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "A_0"
+    "string": "A_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "F_0"
+    "string": "F_0",
+    "duration": 0.25
   },
   {
-    "string": "F_0"
+    "string": "F_0",
+    "duration": 0.25
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "A_0"
+    "string": "A_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "B_0"
+    "string": "B_0",
+    "duration": 0.25
   },
   {
-    "string": "B_0"
+    "string": "B_0",
+    "duration": 0.25
   },
   {
-    "string": "A_0"
+    "string": "A_0",
+    "duration": 0.125
   },
   {
-    "string": "G_0"
+    "string": "G_0",
+    "duration": 0.125
   },
   {
-    "string": "A_0"
+    "string": "A_0",
+    "duration": 0.125
   },
   {
-    "string": "F_0"
+    "string": "F_0",
+    "duration": 0.125
   },
   {
-    "string": "E_0"
+    "string": "E_0",
+    "duration": 0.25
   },
   {
-    "string": "E_0"
+    "string": "E_0",
+    "duration": 0.25
   }
 ]

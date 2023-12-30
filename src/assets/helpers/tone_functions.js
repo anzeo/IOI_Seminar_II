@@ -11,5 +11,13 @@ export const play = {
     async playHarpString(string) {
         const audio = new Audio(harp[string])
         await audio.play()
+    },
+
+    async playHarpStringWithDuration(string, duration) {
+        const wholeNoteBeats = 4
+        const quarterNoteDuration = 60 / 120
+        const audio = new Audio(harp[string])
+        await audio.play()
+        await new Promise(resolve => setTimeout(resolve, duration * wholeNoteBeats * quarterNoteDuration * 1000));
     }
 }

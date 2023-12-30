@@ -71,17 +71,9 @@ export default {
 
     "activeSongNote": function (newVal) {
       if (newVal !== -1) {
-        // Mark previous note as played, so it can be displayed differently
-        if (newVal > 0) {
-          if (newVal - 1 >= 0 && newVal - 1 < this.songNotes.length)
-            this.songNotes[newVal - 1].played = true
-          let prevSvgNote = document.querySelector(`#instructionNote_${newVal - 1}`)
-          prevSvgNote.classList.remove("active")
-          prevSvgNote.classList.add("played")
-        }
-
         // Update class of active note to play, so it can be displayed differently
         let svg_note = document.querySelector(`#instructionNote_${newVal}`)
+        svg_note.classList.remove("upcoming")
         svg_note.classList.add("active")
       }
     },
@@ -177,15 +169,16 @@ export default {
           let strings = touchedStringContainers.reduce((result, stringContainer) => {
             // ========== If Song tutorial is active, ignore all strings, other than the current active one ==========
             if (this.isSongTutorialActive && this.activeSongNote !== -1) {
-              let string = stringContainer.parentNode.querySelector(".string")
-              if (this.songNotes[this.activeSongNote].string === string.id) {
-                if (!this.previousPressedStringIds.includes(string.id)) {
-                  this.songNotes[this.activeSongNote].played = true;
+                let string = stringContainer.parentNode.querySelector(".string")
+                if (this.songNotes[this.activeSongNote].string === string.id) {
+                  if (!this.previousPressedStringIds.includes(string.id) && this.songNotes[this.activeSongNote].started === undefined) {
+                    this.songNotes[this.activeSongNote].started = true
+                    string.setAttribute("data-duration", this.songNotes[this.activeSongNote].duration)
+                  }
+                  result.push(string);
+                } else if (this.activeSongNote > 0 && this.songNotes[this.activeSongNote - 1].string === string.id && this.previousPressedStringIds.includes(string.id)) {
+                  result.push(string);
                 }
-                result.push(string);
-              } else if (this.activeSongNote > 0 && this.songNotes[this.activeSongNote - 1].string === string.id && this.previousPressedStringIds.includes(string.id)) {
-                result.push(string);
-              }
             } // =====================================================================================================
             else {
               let string = stringContainer.parentNode.querySelector(".string");
@@ -203,16 +196,33 @@ export default {
 
       // check which strings were pressed before and are not pressed anymore
       _.difference(this.previousPressedStringIds, pressedStringIds).forEach(stringId => {
-        document.querySelector(`#${stringId}`)?.classList.remove("pressed")
+        let pressedString = document.querySelector(`#${stringId}`)
+        pressedString?.classList.remove("pressed")
       })
 
       // check which strings were not pressed before, and are now pressed
       _.difference(pressedStringIds, this.previousPressedStringIds).forEach(stringId => {
         let pressedString = document.querySelector(`#${stringId}`)
-        pressedString?.classList.add("pressed")
         let [note, noteId] = stringId.split("_")
         let octave = noteId < this.noteOctaves.length ? this.noteOctaves[noteId] : this.noteOctaves[noteId - 1] + 1
-        this.play.playHarpString(`${note}${octave}`)
+        if (this.isSongTutorialActive) {
+          // This if prevents string from being pressed (being colored red) multiple times, before the next note becomes active
+          // It also delays the time before the next note becomes active, so the song can't be played to quickly
+          if (pressedString.dataset.duration) {
+            pressedString?.classList.add("pressed")
+            document.querySelector(`#instructionNote_${this.activeSongNote}`)?.classList.add("played")
+            document.querySelector(`#instructionNote_${this.activeSongNote + 1}`)?.classList.add("upcoming")
+            this.play.playHarpStringWithDuration(`${note}${octave}`, pressedString.dataset.duration).then(() => {
+              if (this.songNotes[this.activeSongNote])
+                this.songNotes[this.activeSongNote].played = true;
+            })
+            pressedString.removeAttribute("data-duration")
+          }
+        }
+        else {
+          pressedString?.classList.add("pressed")
+          this.play.playHarpString(`${note}${octave}`)
+        }
       })
 
       this.previousPressedStringIds = _.clone(pressedStringIds)
