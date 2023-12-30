@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "title": "Kje so tiste stezice",
+    "melody_file": "piano_01.json"
+  },
+  {
+    "title": "Moj očka ima konjička dva",
+    "melody_file": "piano_02.json"
+  },
+  {
+    "title": "Na planincah sončece sije",
+    "melody_file": "piano_03.json"
+  },
+  {
+    "title": "Vse najboljše za rojstni dan",
+    "melody_file": "piano_04.json"
+  },
+  {
+    "title": "Jaz pa grem na zeleno travco",
+    "melody_file": "piano_05.json"
+  },
+  {
+    "title": "Ringa, ringa, raja",
+    "melody_file": "piano_06.json"
+  },
+  {
+    "title": "Čuk se je oženil",
+    "melody_file": "piano_07.json"
+  },
+  {
+    "title": "Šmentana muha",
+    "melody_file": "piano_08.json"
+  },
+  {
+    "title": "Sijaj, sijaj sončece",
+    "melody_file": "piano_09.json"
+  },
+  {
+    "title": "Izidor ovčice pase",
+    "melody_file": "piano_10.json"
+  },
+  {
+    "title": "Sveta noč",
+    "melody_file": "piano_11.json"
+  },
+  {
+    "title": "V dolini tihi",
+    "melody_file": "piano_12.json"
+  }
+]
