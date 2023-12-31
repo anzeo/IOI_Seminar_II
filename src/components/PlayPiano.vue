@@ -1,6 +1,6 @@
 <template>
   <div class="d-flex" style="width: 100vw">
-    <div class="piano">
+    <div class="piano" :key="changingKey">
       <div v-for="i in noteOctaves" :key="'keys_' + i" class="keys-group">
         <div :id="'C' + i" class="white-key" @click="play.playPianoKey('C' + i)"><p>C{{ i }}</p></div>
         <div :id="'Db' + i" class="black-key" @click="play.playPianoKey('Db' + i)"><p>Db{{ i }}</p></div>
@@ -49,7 +49,10 @@ export default {
       canvasCtx: null,
       results: null,
       previousPressedKeyIds: [],
-      play: play
+      play: play,
+      songNotes: [],
+      changingKey: -1,
+      octaveDelay: 1
     }
   },
 
@@ -61,7 +64,55 @@ export default {
         await session
         await this.detectPressedKeys()
       }
-    }
+    },
+
+    "songTutorial": {
+      handler: function (newVal) {
+        if (newVal) {
+          this.songNotes = []
+          // Force piano keys to rerender
+          this.changingKey *= -1
+          if (newVal.isActive) {
+            this.$parent.selectedInstrumentMode = "advanced"
+            import(`@/assets/songs/${newVal.song.melody_file}`).then(resp => {
+              this.songNotes = _.cloneDeep(resp.default)
+
+              // const [minEntry] = this.songNotes.slice().sort((a, b) => {
+              //   const [aChar, aNum] = a.key.split('_');
+              //   const [bChar, bNum] = b.key.split('_');
+              //
+              //   return aNum - bNum || aChar.localeCompare(bChar);
+              // });
+              //
+              // const [maxEntry] = this.songNotes.slice().sort((a, b) => {
+              //   const [aChar, aNum] = a.key.split('_');
+              //   const [bChar, bNum] = b.key.split('_');
+              //
+              //   return bNum - aNum || bChar.localeCompare(aChar);
+              // });
+              // console.log("Min Entry:", minEntry);
+              // console.log("Max Entry:", maxEntry);
+              this.drawNextInstruction('active')
+            })
+          }
+        }
+      },
+      deep: true
+    },
+
+    "activeSongNote": function (newVal) {
+      if (newVal !== -1) {
+        let note = document.querySelector(`#instructionNote_${newVal}`)
+        note?.classList.remove("upcoming")
+        note?.classList.add("active")
+      }
+    },
+    //
+    // "startedSongNote": function (newVal) {
+    //   if (newVal !== -1) {
+    //     this.drawNextInstruction()
+    //   }
+    // }
   },
 
   computed: {
@@ -71,6 +122,24 @@ export default {
 
     isSongTutorialActive() {
       return this.songTutorial && this.songTutorial.isActive
+    },
+
+    activeSongNote() {
+      if (this.isSongTutorialActive && this.songNotes?.length > 0) {
+        return this.songNotes.findIndex(songNote => {
+          return songNote.played === undefined
+        })
+      }
+      return -1
+    },
+
+    startedSongNote() {
+      if (this.isSongTutorialActive && this.songNotes?.length > 0) {
+        return this.songNotes.findLastIndex(songNote => {
+          return songNote.started === true
+        }) + 1
+      }
+      return -1
     }
   },
 
@@ -78,6 +147,26 @@ export default {
     this.results = this.$props.detectionResults
     this.canvasElement = this.$props.canvasRef
     this.canvasCtx = this.canvasElement.getContext("2d")
+    //
+    // let song = []
+    // document.addEventListener('mousedown', e => {
+    //   let touchedElements = document.elementsFromPoint(e.x, e.y)
+    //   let pressedBlackKey = touchedElements.filter(item => item.classList.contains('black-key'))
+    //   let pressedWhiteKey = touchedElements.filter(item => item.classList.contains('white-key'))
+    //
+    //   if (pressedBlackKey && pressedBlackKey.length) {
+    //     pressedBlackKey.forEach(key => {
+    //       song.push(key)
+    //       key?.click()
+    //     })
+    //   } else if (pressedWhiteKey && pressedWhiteKey.length) {
+    //     pressedWhiteKey.forEach(key => {
+    //       song.push(key)
+    //       key?.click()
+    //     })
+    //   }
+    //   console.log(song)
+    // })
   },
 
   methods: {
@@ -112,6 +201,27 @@ export default {
           pressedKeys = pressedKeys.concat(pressedBlackKey)
         else if (pressedWhiteKey && pressedWhiteKey.length)
           pressedKeys = pressedKeys.concat(pressedWhiteKey)
+
+        if (this.isSongTutorialActive && this.activeSongNote !== -1) {
+          pressedKeys = pressedKeys.reduce((result, pressedKey) => {
+            // Convert the octave to corresponding index inside noteOctaves - because song tutorial has relative notes, for example C_0 would be C4
+            let [, note, octave] = pressedKey.id.match(/^([A-Ga-g#b]+)(\d+)$/);
+            let noteId = this.noteOctaves.indexOf(parseInt(octave))
+            let keyId = `${note}_${noteId - this.octaveDelay}`
+
+            if (this.songNotes[this.activeSongNote].key === keyId) {
+              if (!this.previousPressedKeyIds.includes(pressedKey.id) && this.songNotes[this.activeSongNote].started === undefined) {
+                this.songNotes[this.activeSongNote].started = true
+                pressedKey.setAttribute("data-duration", this.songNotes[this.activeSongNote].duration)
+              }
+              result.push(pressedKey)
+            } else if (this.activeSongNote > 0 && this.songNotes[this.activeSongNote - 1].key === keyId && this.previousPressedKeyIds.includes(pressedKey.id)) {
+              result.push(pressedKey)
+            }
+
+            return result;
+          }, []);
+        }
       }
 
       let pressedKeyIds = pressedKeys.map(pressedKey => pressedKey.id)
@@ -124,8 +234,26 @@ export default {
       // check which keys were not pressed before, and are now pressed
       _.difference(pressedKeyIds, this.previousPressedKeyIds).forEach(keyId => {
         let pressedKey = document.querySelector(`#${keyId}`)
-        pressedKey?.classList.add("pressed")
-        pressedKey?.click()
+        // let [, note, octave] = keyId.match(/^([A-Ga-g#b]+)(\d+)$/);
+        // let noteId = this.noteOctaves.indexOf(parseInt(octave))
+        // let convertedKey = `${note}_${noteId - this.octaveDelay}`
+
+        if (this.isSongTutorialActive) {
+          if (pressedKey.dataset.duration) {
+            pressedKey?.classList.add("pressed")
+            pressedKey?.querySelector(".instructionNote")?.remove()
+            this.drawNextInstruction('upcoming')
+            this.play.playPianoKeyWithDuration(keyId, pressedKey.dataset.duration).then(() => {
+              if (this.songNotes[this.activeSongNote]) {
+                this.songNotes[this.activeSongNote].played = true;
+              }
+            })
+            pressedKey.removeAttribute("data-duration")
+          }
+        } else {
+          pressedKey?.classList.add("pressed")
+          pressedKey?.click()
+        }
       })
 
       this.previousPressedKeyIds = _.clone(pressedKeyIds)
@@ -229,6 +357,21 @@ export default {
     async updateModel() {
       console.log("Updating piano model")
       session = await loadModel()
+    },
+
+    drawNextInstruction(stateClass) {
+      let i = Math.max(this.activeSongNote, this.startedSongNote)
+      if (i < 0 || i >= this.songNotes.length)
+        return
+
+      let [note, noteId] = this.songNotes[i].key.split("_")
+      noteId = parseInt(noteId)
+      let octave = this.noteOctaves[noteId + this.octaveDelay]
+      let key = document.querySelector(".piano")?.querySelector(`#${note}${octave}`)
+      let noteInstruction = document.createElement('div')
+      noteInstruction.id = "instructionNote_" + i
+      noteInstruction.classList.add('instructionNote', stateClass)
+      key.appendChild(noteInstruction)
     }
   }
 }

@@ -79,16 +79,55 @@
     left: 50%;
     transform: translateX(-50%);
     margin-bottom: 0;
+    z-index: 5;
+  }
+
+  .instructionNote {
+    position: absolute;
+    bottom: 0;
+    left: 1px;
+    width: 100%;
+    height: 20%;
   }
 }
 
 .black-key {
+  position: relative;
   background-color: black;
   height: 250px;
   z-index: 1;
   color: white;
   text-align: center;
   font-size: 12px;
+
+  .instructionNote {
+    position: absolute;
+    width: 100%;
+    height: 30%;
+    bottom: 0;
+    border: 1px solid black;
+    border-top: 0;
+  }
+}
+
+.white-key, .black-key {
+  .instructionNote {
+    &.active {
+      background-color: #ffc107;
+    }
+
+    &.upcoming {
+      background-color: #86f1bf;
+    }
+
+    &.played {
+      background-color: #249b64;
+    }
+
+    &.next{
+      background-color: #378cff;
+    }
+  }
 }
 
 .white-key.pressed, .black-key.pressed {

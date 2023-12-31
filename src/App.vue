@@ -6,15 +6,20 @@
         <h5 v-if="songTutorial && songTutorial.isActive"
             style="margin: 10px 0 5px 0; line-height: 35px; border-bottom: 1px solid; border-top: 1px solid; padding: 0 4px 0 4px"
             class="me-2">{{ songTutorial.song.title }}</h5>
-        <b-button v-if="songTutorial.isActive" class="me-2 mt-2" variant="warning"
-                  @click="songTutorial = {isActive: false}">Cancel tutorial
-        </b-button>
+        <div v-if="songTutorial.isActive" class="d-flex">
+          <b-button class="me-2 mt-2" variant="warning"
+                    @click="songTutorial = {isActive: true, song: songTutorial.song}" size="sm">Restart tutorial
+          </b-button>
+          <b-button class="me-2 mt-2" variant="danger"
+                    @click="songTutorial = {isActive: false}" size="sm">Cancel tutorial
+          </b-button>
+        </div>
       </div>
       <SidebarComponent ref="sidebar" :selected-instrument="selectedInstrument"
                         @songSelected="song => {songTutorial = {isActive: true, song: song}}"></SidebarComponent>
       <div v-if="selectedInstrument === 'piano'">
         <div style="position: absolute; left: 0; top: 0; z-index: 1">
-          <b-button class="ms-2 mt-2"
+          <b-button class="ms-2 mt-2" :disabled="songTutorial.isActive"
                     @click="selectedInstrumentMode = (selectedInstrumentMode === 'easy' ? 'advanced' : 'easy')">{{
               selectedInstrumentMode === "easy" ? "Easy" : "Advanced"
             }}
@@ -102,7 +107,7 @@ export default {
 
   data() {
     return {
-      instruments: ["piano", "zither", "xylophone"],
+      instruments: ["piano", "zither"],
       selectedInstrument: null,
       selectedInstrumentMode: "easy",
       lastVideoTime: -1,
